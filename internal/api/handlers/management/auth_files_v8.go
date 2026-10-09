@@ -20,6 +20,8 @@ func (h *Handler) StartOAuthV8(c *gin.Context) {
 		h.RequestAntigravityToken(c)
 	case "amp":
 		h.RequestAmpToken(c)
+	case "warp":
+		h.RequestWarpToken(c)
 	case "kimi":
 		h.RequestKimiToken(c)
 	case "kimi-ai":

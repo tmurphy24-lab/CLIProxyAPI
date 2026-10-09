@@ -216,6 +216,7 @@ func (s *Server) registerManagementRoutes() {
 		mgmt.GET("/codex-auth-url", s.mgmt.RequestCodexToken)
 		mgmt.GET("/antigravity-auth-url", s.mgmt.RequestAntigravityToken)
 		mgmt.GET("/amp-auth-url", s.mgmt.RequestAmpToken)
+		mgmt.GET("/warp-auth-url", s.mgmt.RequestWarpToken)
 		mgmt.GET("/kimi-auth-url", s.mgmt.RequestKimiToken)
 		mgmt.GET("/kimi-ai-auth-url", s.mgmt.RequestKimiAIToken)
 		mgmt.GET("/xai-auth-url", s.mgmt.RequestXAIToken)
