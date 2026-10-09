@@ -4975,6 +4975,76 @@
       "supportedOutputModalities": [
         "text"
       ]
+    },
+    {
+      "id": "qwen3.8-max",
+      "object": "model",
+      "created": 1783555200,
+      "owned_by": "alibaba",
+      "type": "qwen",
+      "display_name": "Qwen 3.8 Max",
+      "description": "Alibaba Cloud Qwen 3.8 Max flagship model",
+      "context_length": 128000,
+      "max_completion_tokens": 8192,
+      "supportedInputModalities": [
+        "text",
+        "image"
+      ],
+      "supportedOutputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "qwen-2.5-72b-instruct",
+      "object": "model",
+      "created": 1783555200,
+      "owned_by": "alibaba",
+      "type": "qwen",
+      "display_name": "Qwen 2.5 72B Instruct",
+      "description": "Qwen 2.5 72B Instruct model",
+      "context_length": 128000,
+      "max_completion_tokens": 8192,
+      "supportedInputModalities": [
+        "text"
+      ],
+      "supportedOutputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "qwen-coder-32b-instruct",
+      "object": "model",
+      "created": 1783555200,
+      "owned_by": "alibaba",
+      "type": "qwen",
+      "display_name": "Qwen Coder 32B Instruct",
+      "description": "Qwen Coder 32B Instruct coding model",
+      "context_length": 128000,
+      "max_completion_tokens": 8192,
+      "supportedInputModalities": [
+        "text"
+      ],
+      "supportedOutputModalities": [
+        "text"
+      ]
+    },
+    {
+      "id": "qwen-max",
+      "object": "model",
+      "created": 1783555200,
+      "owned_by": "alibaba",
+      "type": "qwen",
+      "display_name": "Qwen Max",
+      "description": "Qwen Max flagship reasoning model",
+      "context_length": 128000,
+      "max_completion_tokens": 8192,
+      "supportedInputModalities": [
+        "text",
+        "image"
+      ],
+      "supportedOutputModalities": [
+        "text"
+      ]
     }
   ]
 }
