@@ -621,6 +621,24 @@ func ExtractSessionInfo(headers http.Header, payload []byte, metadata map[string
 		}
 		return finalizeSessionInfo(info)
 	}
+	if sid := sessionHeaderValue(headers, "X-Amp-Thread-Id"); sid != "" {
+		info.ClientType = "amp"
+		info.SessionID = "amp:" + sid
+		parentTID := sessionHeaderValue(headers, "X-Amp-Parent-Thread-Id")
+		if parentTID == "" {
+			parentTID = sessionHeaderValue(headers, "X-Parent-ID")
+		}
+		if parentTID != "" && parentTID != sid {
+			info.ParentSessionID = "amp:" + parentTID
+			info.AgentName = "subagent"
+		} else if parentCandidate != "" && parentCandidate != sid {
+			info.ParentSessionID = "amp:" + parentCandidate
+			info.AgentName = "subagent"
+		} else {
+			info.AgentName = "main"
+		}
+		return finalizeSessionInfo(info)
+	}
 	if sid := sessionHeaderValue(headers, "X-Client-Request-Id"); sid != "" {
 		info.ClientType = "generic"
 		info.SessionID = "clientreq:" + sid

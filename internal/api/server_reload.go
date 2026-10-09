@@ -202,6 +202,14 @@ func (s *Server) UpdateClientsContext(ctx context.Context, cfg *config.Config) b
 	}
 	s.refreshPluginManagementRoutes()
 
+	// Notify Amp module only when Amp config has changed.
+	if s.ampModule != nil && (oldCfg == nil || !reflect.DeepEqual(oldCfg.AmpCode, cfg.AmpCode)) {
+		log.Debugf("triggering amp module config update")
+		if errUpdate := s.ampModule.OnConfigUpdated(cfg); errUpdate != nil {
+			log.WithError(errUpdate).Error("amp module config update failed")
+		}
+	}
+
 	// Count client sources from configuration and auth store.
 	authEntries := 0
 	if cfg != nil && !cfg.Home.Enabled {

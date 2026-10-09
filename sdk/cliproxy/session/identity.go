@@ -46,7 +46,7 @@ var CandidateSessionPrefixes = []string{
 	"lcp:v1:", "lcp:",
 	"codex:", "claude:", "header:", "session:",
 	"affinity:", "slot:", "task:", "conv:",
-	"thread:", "clientreq:", "geminicache:",
+	"thread:", "amp:", "clientreq:", "geminicache:",
 	"pck:", "user:", "execution:", "agy:", "derived:",
 }
 
@@ -59,7 +59,7 @@ var knownSessionPrefixes = []string{
 	"ctx:v1:", "ctx:",
 	"codex:", "claude:", "header:", "session:",
 	"affinity:", "slot:", "task:", "conv:",
-	"thread:", "clientreq:", "geminicache:",
+	"thread:", "amp:", "clientreq:", "geminicache:",
 	"pck:", "user:", "execution:", "agy:", "derived:",
 }
 

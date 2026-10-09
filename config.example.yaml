@@ -1174,6 +1174,33 @@ plugins:
       config-object:
         mode: "safe"
 
+# Amp CLI integration (legacy-layout section; works in both layouts).
+# Serves Amp-protocol routes under /api/provider/... and proxies Amp control-plane
+# calls to the configured upstream when set.
+# ampcode:
+#   # Upstream URL for Amp CLI OAuth and management features
+#   upstream-url: "https://ampcode.com"
+#   # Optional: override API key for Amp upstream (otherwise uses env or file)
+#   upstream-api-key: ""
+#   # Per-client upstream API key mapping: map client keys (from access.api-keys)
+#   # to different Amp upstream keys for separate accounts/quotas. Unmapped client
+#   # keys fall back to upstream-api-key.
+#   upstream-api-keys:
+#     - upstream-api-key: "amp_key_for_team_a"
+#       api-keys:
+#         - "your-api-key-1"
+#         - "your-api-key-2"
+#   # Restrict Amp management routes (/api/auth, /api/user, etc.) to localhost (default: false)
+#   restrict-management-to-localhost: false
+#   # Force model mappings to run before checking local credentials (default: false)
+#   force-model-mappings: false
+#   # Route models Amp CLI requests but you don't have to alternatives you do have.
+#   model-mappings:
+#     - from: "claude-opus-4-5-20251101"
+#       to: "gemini-claude-opus-4-5-thinking"
+#     - from: "claude-haiku-4-5-20251001"
+#       to: "gemini-2.5-flash"
+
 # Legacy compatibility reference (comments only; not part of this v8 template).
 # Old files and /v0/management still work without a v8 write. Existing legacy-only
 # fields remain in their old locations until a successful v8 configuration write.

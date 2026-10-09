@@ -20,6 +20,8 @@ import (
 	"github.com/gin-gonic/gin"
 	managementHandlers "github.com/router-for-me/CLIProxyAPI/v8/internal/api/handlers/management"
 	"github.com/router-for-me/CLIProxyAPI/v8/internal/api/middleware"
+	"github.com/router-for-me/CLIProxyAPI/v8/internal/api/modules"
+	ampmodule "github.com/router-for-me/CLIProxyAPI/v8/internal/api/modules/amp"
 	codexlive "github.com/router-for-me/CLIProxyAPI/v8/internal/client/codex/live"
 	"github.com/router-for-me/CLIProxyAPI/v8/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v8/internal/githubauth"
@@ -84,6 +86,9 @@ type Server struct {
 
 	// management handler
 	mgmt *managementHandlers.Handler
+
+	// ampModule is the Amp routing module for model mapping hot-reload
+	ampModule *ampmodule.AmpModule
 
 	// pluginHost owns dynamic plugin Management API route dispatch.
 	pluginHost *pluginhost.Host
@@ -234,6 +239,18 @@ func NewServer(cfg *config.Config, authManager *auth.Manager, accessManager *sdk
 
 	// Setup routes
 	s.setupRoutes()
+
+	// Register Amp module using V2 interface with Context
+	s.ampModule = ampmodule.NewLegacy(accessManager, AuthMiddleware(accessManager))
+	ctx := modules.Context{
+		Engine:         engine,
+		BaseHandler:    s.handlers,
+		Config:         cfg,
+		AuthMiddleware: AuthMiddleware(accessManager),
+	}
+	if err := modules.RegisterModule(ctx, s.ampModule); err != nil {
+		log.Errorf("Failed to register Amp module: %v", err)
+	}
 
 	// Apply additional router configurators from options
 	if optionState.routerConfigurator != nil {
