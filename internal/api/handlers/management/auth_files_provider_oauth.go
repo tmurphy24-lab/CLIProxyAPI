@@ -523,6 +523,173 @@ func (h *Handler) RequestAntigravityToken(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "ok", "url": authURL, "state": state})
 }
 
+func (h *Handler) RequestAmpToken(c *gin.Context) {
+	ctx := context.Background()
+	ctx = PopulateAuthContext(ctx, c)
+
+	fmt.Println("Initializing Amp authentication...")
+
+	authSvc := antigravity.NewAntigravityAuth(h.cfg, nil)
+
+	state, errState := misc.GenerateRandomState()
+	if errState != nil {
+		log.Errorf("Failed to generate state parameter: %v", errState)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate state parameter"})
+		return
+	}
+
+	redirectURI := fmt.Sprintf("http://localhost:%d/oauth-callback", antigravity.CallbackPort)
+	authURL := authSvc.BuildAuthURL(state, redirectURI)
+
+	RegisterOAuthSession(state, "amp")
+
+	isWebUI := isWebUIRequest(c)
+	var forwarder *callbackForwarder
+	if isWebUI {
+		targetURL, errTarget := h.managementCallbackURL("/amp/callback")
+		if errTarget != nil {
+			log.WithError(errTarget).Error("failed to compute amp callback target")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "callback server unavailable"})
+			return
+		}
+		var errStart error
+		if forwarder, errStart = startCallbackForwarder(antigravity.CallbackPort, "amp", targetURL); errStart != nil {
+			log.WithError(errStart).Error("failed to start amp callback forwarder")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start callback server"})
+			return
+		}
+	}
+
+	go func() {
+		if isWebUI {
+			defer stopCallbackForwarderInstance(antigravity.CallbackPort, forwarder)
+		}
+
+		waitFile := filepath.Join(h.cfg.AuthDir, fmt.Sprintf(".oauth-amp-%s.oauth", state))
+		deadline := time.Now().Add(5 * time.Minute)
+		var authCode string
+		for {
+			if !IsOAuthSessionPending(state, "amp") {
+				return
+			}
+			if time.Now().After(deadline) {
+				log.Error("oauth flow timed out")
+				SetOAuthSessionError(state, "OAuth flow timed out")
+				return
+			}
+			if data, errReadFile := os.ReadFile(waitFile); errReadFile == nil {
+				var payload map[string]string
+				_ = json.Unmarshal(data, &payload)
+				_ = os.Remove(waitFile)
+				if errStr := strings.TrimSpace(payload["error"]); errStr != "" {
+					log.Errorf("Authentication failed: %s", errStr)
+					SetOAuthSessionError(state, "Authentication failed")
+					return
+				}
+				if payloadState := strings.TrimSpace(payload["state"]); payloadState != "" && payloadState != state {
+					log.Errorf("Authentication failed: state mismatch")
+					SetOAuthSessionError(state, "Authentication failed: state mismatch")
+					return
+				}
+				authCode = strings.TrimSpace(payload["code"])
+				if authCode == "" {
+					log.Error("Authentication failed: code not found")
+					SetOAuthSessionError(state, "Authentication failed: code not found")
+					return
+				}
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		tokenResp, errToken := authSvc.ExchangeCodeForTokens(ctx, authCode, redirectURI)
+		if errToken != nil {
+			log.Errorf("Failed to exchange token: %v", errToken)
+			SetOAuthSessionError(state, "Failed to exchange token")
+			return
+		}
+
+		accessToken := strings.TrimSpace(tokenResp.AccessToken)
+		if accessToken == "" {
+			log.Error("amp: token exchange returned empty access token")
+			SetOAuthSessionError(state, "Failed to exchange token")
+			return
+		}
+
+		email, errInfo := authSvc.FetchUserInfo(ctx, accessToken)
+		if errInfo != nil {
+			log.Errorf("Failed to fetch user info: %v", errInfo)
+			SetOAuthSessionError(state, "Failed to fetch user info")
+			return
+		}
+		email = strings.TrimSpace(email)
+		if email == "" {
+			log.Error("amp: user info returned empty email")
+			SetOAuthSessionError(state, "Failed to fetch user info")
+			return
+		}
+
+		projectID := ""
+		if accessToken != "" {
+			fetchedProjectID, errProject := authSvc.FetchProjectID(ctx, accessToken)
+			if errProject != nil {
+				log.Warnf("amp: failed to fetch project ID: %v", errProject)
+			} else {
+				projectID = fetchedProjectID
+				log.Infof("amp: obtained project ID %s", util.HideAPIKey(projectID))
+			}
+		}
+
+		now := time.Now()
+		metadata := map[string]any{
+			"type":          "amp",
+			"access_token":  tokenResp.AccessToken,
+			"refresh_token": tokenResp.RefreshToken,
+			"expires_in":    tokenResp.ExpiresIn,
+			"timestamp":     now.UnixMilli(),
+			"expired":       now.Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Format(time.RFC3339),
+		}
+		if email != "" {
+			metadata["email"] = email
+		}
+		if projectID != "" {
+			metadata["project_id"] = projectID
+		}
+
+		fileName := fmt.Sprintf("amp-%s.json", email)
+		label := strings.TrimSpace(email)
+		if label == "" {
+			label = "amp"
+		}
+
+		record := &coreauth.Auth{
+			ID:       fileName,
+			Provider: "amp",
+			FileName: fileName,
+			Label:    label,
+			Metadata: metadata,
+		}
+		if errGuard := guardOAuthSessionPendingForSave(state, "amp"); errGuard != nil {
+			return
+		}
+		savedPath, errSave := h.saveTokenRecord(ctx, record)
+		if errSave != nil {
+			log.Errorf("Failed to save token to file: %v", errSave)
+			SetOAuthSessionError(state, "Failed to save token to file")
+			return
+		}
+
+		CompleteOAuthSession(state)
+		fmt.Printf("Authentication successful! Token saved to %s\n", savedPath)
+		if projectID != "" {
+			fmt.Printf("Using GCP project: %s\n", util.HideAPIKey(projectID))
+		}
+		fmt.Println("You can now use Amp services through this CLI")
+	}()
+
+	c.JSON(200, gin.H{"status": "ok", "url": authURL, "state": state})
+}
+
 func (h *Handler) RequestXAIToken(c *gin.Context) {
 	ctx := context.Background()
 	ctx = PopulateAuthContext(ctx, c)
